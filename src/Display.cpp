@@ -1,130 +1,99 @@
 #include "Display.h"
+#include <Wire.h>
 
-Display::Display() 
-    : display(Config::SCREEN_WIDTH, Config::SCREEN_HEIGHT, &Wire, Config::OLED_RESET) {
+// Dodane definicje
+#define SSD1306_WHITE 1
+#define SSD1306_SWITCHCAPVCC 0x2
+
+Display::Display() {
+  oled = new Adafruit_SSD1306(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 }
 
 bool Display::begin() {
-    // Inicjalizacja wyświetlacza
-    if(!display.begin(SSD1306_SWITCHCAPVCC, Config::OLED_ADDRESS)) {
-        return false;
-    }
-    
-    display.clearDisplay();
-    display.setTextSize(1);
-    display.setTextColor(SSD1306_WHITE);
-    return true;
+  if(!oled->begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    return false;
+  }
+  oled->clearDisplay();
+  oled->display();
+  return true;
 }
 
-void Display::formatTime(unsigned long milliseconds, char* buffer) {
-    unsigned long seconds = milliseconds / 1000;
-    unsigned long minutes = seconds / 60;
-    seconds = seconds % 60;
-    
-    // Format: MM:SS
-    sprintf(buffer, "%02lu:%02lu", minutes, seconds);
+void Display::showMainMenu(bool isTimerSelected) {
+  oled->clearDisplay();
+  oled->setTextSize(2);
+  oled->setTextColor(SSD1306_WHITE);
+  
+  oled->setCursor(5, 0);
+  oled->println("Timer");
+  
+  oled->setCursor(5, 16);
+  oled->println("Aero");
+  
+  oled->setCursor(115, isTimerSelected ? 0 : 16);
+  oled->print(">");
+  
+  showBatteryStatus();
+  oled->display();
 }
 
-void Display::clearAndSetCursor() {
-    display.clearDisplay();
-    display.setCursor(0, 0);
+void Display::showBigTimer(int seconds) {
+  oled->clearDisplay();
+  oled->setTextSize(3);
+  oled->setTextColor(SSD1306_WHITE);
+  
+  char timeStr[6];
+  sprintf(timeStr, "%d", seconds);
+  int16_t x1, y1;
+  uint16_t w, h;
+  oled->getTextBounds(timeStr, 0, 0, &x1, &y1, &w, &h);
+  int x = (SCREEN_WIDTH - w) / 2;
+  int y = (SCREEN_HEIGHT - h) / 2;
+  
+  oled->setCursor(x, y);
+  oled->print(seconds);
+  
+  showBatteryStatus();
+  oled->display();
 }
 
-void Display::showIdle() {
-    clearAndSetCursor();
-    display.println("Minutnik");
-    display.println("");
-    display.println("Minutnik czy AeroPress");
-
+void Display::showAeroStatus(const char* status, int seconds) {
+  oled->clearDisplay();
+  
+  oled->setTextSize(1);
+  oled->setTextColor(SSD1306_WHITE);
+  oled->setCursor(0, 0);
+  oled->println(status);
+  
+  oled->setTextSize(3);
+  char timeStr[6];
+  sprintf(timeStr, "%d", seconds);
+  int16_t x1, y1;
+  uint16_t w, h;
+  oled->getTextBounds(timeStr, 0, 0, &x1, &y1, &w, &h);
+  int x = (SCREEN_WIDTH - w) / 2;
+  
+  oled->setCursor(x, 12);
+  oled->print(seconds);
+  
+  showBatteryStatus();
+  oled->display();
 }
 
-void Display::showTimer(unsigned long remainingTime) {
-    clearAndSetCursor();
-    display.println("Minutnik");
-    
-    char timeBuffer[6];
-    formatTime(remainingTime, timeBuffer);
-    
-    display.setTextSize(2);
-    display.setCursor(30, 16);
-    display.print(timeBuffer);
-    display.setTextSize(1);
-    display.display();
+void Display::showMessage(const char* message) {
+  oled->clearDisplay();
+  oled->setTextSize(1);
+  oled->setTextColor(SSD1306_WHITE);
+  oled->setCursor(0, 0);
+  oled->println(message);
+  oled->display();
 }
 
-void Display::showBlooming(unsigned long remainingTime) {
-    clearAndSetCursor();
-    display.println("AeroPress - Blooming");
-    
-    char timeBuffer[6];
-    formatTime(remainingTime, timeBuffer);
-    
-    display.setTextSize(2);
-    display.setCursor(30, 16);
-    display.print(timeBuffer);
-    display.setTextSize(1);
-    display.display();
-}
-
-void Display::showBrewing(unsigned long remainingTime) {
-    clearAndSetCursor();
-    display.println("AeroPress - Brewing");
-    
-    char timeBuffer[6];
-    formatTime(remainingTime, timeBuffer);
-    
-    display.setTextSize(2);
-    display.setCursor(30, 16);
-    display.print(timeBuffer);
-    display.setTextSize(1);
-    display.display();
-}
-
-void Display::showPressing(unsigned long remainingTime) {
-    clearAndSetCursor();
-    display.println("AeroPress - Pressing");
-    
-    char timeBuffer[6];
-    formatTime(remainingTime, timeBuffer);
-    
-    display.setTextSize(2);
-    display.setCursor(30, 16);
-    display.print(timeBuffer);
-    display.setTextSize(1);
-    display.display();
-}
-
-void Display::showCoolingDownPrompt() {
-    clearAndSetCursor();
-    display.println("Chcesz wytudzić kawę?");
-    display.println("");
-    display.println("Tak/Nie");
-    display.display();
-}
-
-void Display::showCoolingDown(unsigned long remainingTime) {
-    clearAndSetCursor();
-    display.println("Stygnięcie");
-    
-    char timeBuffer[6];
-    formatTime(remainingTime, timeBuffer);
-    
-    display.setTextSize(2);
-    display.setCursor(30, 16);
-    display.print(timeBuffer);
-    display.setTextSize(1);
-    display.display();
-}
-
-void Display::showComplete() {
-    clearAndSetCursor();
-    display.println("GOTOWE");
-    display.println("");
-    display.println("Smacznej kawusi!");
-    display.display();
-}
-
-void Display::clear() {
-    display.clearDisplay();
-    display.display();
-}
+void Display::showBatteryStatus() {
+  int batteryLevel = analogRead(BATTERY_PIN);
+  int percentage = map(batteryLevel, 0, 1023, 0, 100);
+  
+  oled->setTextSize(1);
+  oled->setCursor(90, 0);
+  oled->print(percentage);
+  oled->print("%");
+} 

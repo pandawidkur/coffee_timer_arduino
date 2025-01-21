@@ -1,0 +1,16 @@
+Green button (d2) - activation of the regular program, initiation of the “cooling down” mode
+Yellow button (d3) - activation of the “aero” program
+Red button (d4) - stop the countdown, wake up the device, hibernate the device
+buzzer (d9) - plays the sound of the countdown
+Oled screen - 128x32 (a4 and a5), during the countdown it shows how many seconds are left, when there is no countdown it shows “ready to go”, when it finishes the countdown it shows “tasty coffee”
+Regular program:
+steps:
+1. pressing the green button starts the countdown of 30 seconds, 
+2. each subsequent press adds 30 seconds to the current state
+3. when the countdown is over, do the optional step “cooling down”
+Aero program:
+while digesting this program, no more seconds can be added, the green button only works at the time of the “cooling down” step and is used to confirm the step
+steps:
+1. blooming: duration 30 sec, display the word “blooming” and the remaining time, when finished, flash the red LED for 3 seconds and go to the next step
+2. brewing: duration 90 sec, display the word “brewing” and the remaining time, when finished flash the red LED for 3 seconds and go to the next step
+3. pressing: duration 20 sec, display the word “pressing” and the remaining time, when finished flash the red diode for 3 seconds and go to the next step
